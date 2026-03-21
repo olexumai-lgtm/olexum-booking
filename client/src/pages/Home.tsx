@@ -23,7 +23,6 @@ export default function Home() {
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const [showQualification, setShowQualification] = useState(true);
-  const [qualStep, setQualStep] = useState(1);
   const [disqualified, setDisqualified] = useState(false);
   const [selectedIndustry, setSelectedIndustry] = useState("");
 
@@ -37,21 +36,14 @@ export default function Home() {
         window.fbq("trackCustom", "Step1Qualified");
         window._step1QualifiedFired = true;
       }
-      setQualStep(2);
+      if (typeof window !== "undefined" && window.fbq && !window._leadFired) {
+        window.fbq("track", "Lead", { content_name: "qualification_form", content_category: "mitigation_restoration" });
+        window._leadFired = true;
+      }
+      setShowQualification(false);
     } else {
       setDisqualified(true);
     }
-  };
-
-  const handleQ2Answer = (answer: string) => {
-    if (typeof window !== "undefined" && window.fbq) {
-      window.fbq("trackCustom", "QualifiedLead", { contractor_type: "mitigation_restoration", growth_challenge: answer });
-      if (!window._leadFired) {
-        window.fbq("track", "Lead", { content_name: "qualification_form", content_category: answer });
-        window._leadFired = true;
-      }
-    }
-    setShowQualification(false);
   };
 
   // Handle scroll for sticky CTA
@@ -204,70 +196,36 @@ export default function Home() {
                 </motion.div>
               ) : (
                 <motion.div
-                  key={qualStep}
+                  key="q1"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ type: "spring", stiffness: 300, damping: 30 }}
                   className="space-y-8"
                 >
-                  <div className="flex items-center justify-center gap-2 mb-8">
-                    <span className="text-sm font-medium text-muted-foreground tracking-widest uppercase">
-                      Question {qualStep}/2
-                    </span>
-                    <div className="h-1 w-12 bg-white/10 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-primary transition-all duration-500 ease-out"
-                        style={{ width: qualStep === 1 ? "50%" : "100%" }}
-                      />
-                    </div>
+                  <h2
+                    className="text-2xl font-bold text-center text-white leading-tight"
+                    style={{ fontSize: "22px" }}
+                  >
+                    Are you a mitigation contractor or restoration business owner?
+                  </h2>
+                  <div className="grid gap-4 pt-4">
+                    <Button
+                      size="lg"
+                      className="h-16 text-lg font-semibold bg-primary hover:bg-primary/90 transition-all hover:scale-[1.02]"
+                      onClick={() => handleQ1Answer("yes")}
+                    >
+                      Yes, that's me
+                    </Button>
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="h-16 text-lg font-medium border-white/10 hover:bg-white/5 hover:text-white transition-all"
+                      onClick={() => handleQ1Answer("no")}
+                    >
+                      No
+                    </Button>
                   </div>
-                  {qualStep === 1 ? (
-                    <>
-                      <h2
-                        className="text-2xl font-bold text-center text-white leading-tight"
-                        style={{ fontSize: "22px" }}
-                      >
-                        Are you a mitigation contractor or restoration business owner?
-                      </h2>
-                      <div className="grid gap-4 pt-4">
-                        <Button
-                          size="lg"
-                          className="h-16 text-lg font-semibold bg-primary hover:bg-primary/90 transition-all hover:scale-[1.02]"
-                          onClick={() => handleQ1Answer("yes")}
-                        >
-                          Yes, that's me
-                        </Button>
-                        <Button
-                          size="lg"
-                          variant="outline"
-                          className="h-16 text-lg font-medium border-white/10 hover:bg-white/5 hover:text-white transition-all"
-                          onClick={() => handleQ1Answer("no")}
-                        >
-                          No
-                        </Button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <h2 className="text-3xl md:text-4xl font-bold text-center text-white leading-tight">
-                        What's your biggest growth challenge right now?
-                      </h2>
-                      <div className="grid gap-4 pt-4">
-                        {["Missing Calls/Losing Leads", "Hiring & Scaling My Team", "Inconsistent Follow-Up", "Unqualified Leads"].map((challenge) => (
-                          <Button
-                            key={challenge}
-                            size="lg"
-                            variant="outline"
-                            className="h-16 text-lg font-medium border-white/10 hover:bg-primary hover:border-primary hover:text-white transition-all hover:scale-[1.02] justify-start px-6"
-                            onClick={() => handleQ2Answer(challenge)}
-                          >
-                            {challenge}
-                          </Button>
-                        ))}
-                      </div>
-                    </>
-                  )}
                 </motion.div>
               )}
             </div>
