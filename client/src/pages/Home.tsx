@@ -4,7 +4,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Check, Phone, TrendingUp, ChevronRight, Info } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 declare global {
   interface Window {
@@ -22,7 +22,9 @@ export default function Home() {
   const [isMonthly, setIsMonthly] = useState(true);
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
-  const [showQualification, setShowQualification] = useState(true);
+  const [showQualification, setShowQualification] = useState(false);
+  const heroRef = useRef<HTMLElement>(null);
+  const qualifierTriggeredRef = useRef(false);
   const [disqualified, setDisqualified] = useState(false);
   const [selectedIndustry, setSelectedIndustry] = useState("");
 
@@ -53,6 +55,27 @@ export default function Home() {
     };
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Scroll-triggered qualifier popup (once per session)
+  useEffect(() => {
+    if (sessionStorage.getItem("qualifierSeen")) return;
+
+    const handleQualifierScroll = () => {
+      if (qualifierTriggeredRef.current) return;
+      const hero = heroRef.current;
+      if (!hero) return;
+      const heroBottom = hero.getBoundingClientRect().bottom;
+      if (heroBottom <= 0) {
+        qualifierTriggeredRef.current = true;
+        setShowQualification(true);
+        sessionStorage.setItem("qualifierSeen", "1");
+        window.removeEventListener("scroll", handleQualifierScroll);
+      }
+    };
+
+    window.addEventListener("scroll", handleQualifierScroll);
+    return () => window.removeEventListener("scroll", handleQualifierScroll);
   }, []);
 
   // Countdown timer to March 28, 2026
@@ -149,7 +172,7 @@ export default function Home() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-md flex items-center justify-center p-4"
+            className="fixed inset-0 z-[100] bg-background/35 backdrop-blur-sm flex items-center justify-center p-4"
           >
             <div className="w-full max-w-md">
               {disqualified ? (
@@ -250,7 +273,7 @@ export default function Home() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative pt-20 pb-2 lg:pt-24 lg:pb-4 overflow-hidden">
+      <section ref={heroRef} className="relative pt-20 pb-2 lg:pt-24 lg:pb-4 overflow-hidden">
         {/* Background Elements */}
         <div className="absolute top-0 right-0 w-full h-full z-0 pointer-events-none bg-background">
           <div className="absolute inset-0 bg-gradient-to-b from-blue-900/5 to-transparent" />
