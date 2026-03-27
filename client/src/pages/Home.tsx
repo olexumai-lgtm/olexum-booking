@@ -2,9 +2,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Check, Phone, TrendingUp, ChevronRight, Info } from "lucide-react";
+import { Check, Phone, TrendingUp, ChevronRight, Info, Play } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 
 declare global {
   interface Window {
@@ -27,6 +27,22 @@ export default function Home() {
   const qualifierTriggeredRef = useRef(false);
   const [disqualified, setDisqualified] = useState(false);
   const [selectedIndustry, setSelectedIndustry] = useState("");
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [videoProgress, setVideoProgress] = useState(0);
+
+  const toggleVideo = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (video.paused) {
+      video.muted = false;
+      video.play();
+      setIsPlaying(true);
+    } else {
+      video.pause();
+      setIsPlaying(false);
+    }
+  }, []);
 
   const handleQ1Answer = (answer: string) => {
     if (typeof window !== "undefined" && window.fbq && !window._step1Fired) {
@@ -47,6 +63,16 @@ export default function Home() {
       setDisqualified(true);
     }
   };
+
+  // Lock body scroll when qualifier popup is open
+  useEffect(() => {
+    if (showQualification) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [showQualification]);
 
   // Handle scroll for sticky CTA
   useEffect(() => {
@@ -226,11 +252,12 @@ export default function Home() {
                   transition={{ type: "spring", stiffness: 300, damping: 30 }}
                   className="space-y-8"
                 >
+                  <p className="text-center text-[#8b949e] text-sm font-medium tracking-wide">Question 1 of 1</p>
                   <h2
                     className="text-2xl font-bold text-center text-white leading-tight"
                     style={{ fontSize: "22px" }}
                   >
-                    Are you a mitigation contractor or restoration business owner?
+                    Are you a mitigation contractor or restoration company owner?
                   </h2>
                   <div className="grid gap-4 pt-4">
                     <Button
@@ -345,23 +372,13 @@ export default function Home() {
               className="hidden lg:block"
               id="calendar-desktop"
             >
-              <div className="relative group">
-                <div className="absolute -inset-1 bg-gradient-to-r from-primary to-white/20 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
-                <Card className="relative bg-card/80 backdrop-blur-xl border-white/10 overflow-hidden">
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-white/50 to-primary opacity-50" />
-                  <CardContent className="p-0">
-                    <div className="w-full h-[900px] overflow-hidden rounded-xl bg-white/5">
-                      <iframe
-                        src="https://api.leadconnectorhq.com/widget/booking/g5Gko1Ht8zeUQB8XIAbg"
-                        style={{ width: '100%', border: 'none', overflow: 'scroll' }}
-                        scrolling="yes"
-                        id="g5Gko1Ht8zeUQB8XIAbg_1737701234567"
-                        className="w-full h-full min-h-[900px]"
-                      ></iframe>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+              <iframe
+                src="https://api.leadconnectorhq.com/widget/booking/g5Gko1Ht8zeUQB8XIAbg"
+                style={{ width: '100%', border: 'none', overflow: 'scroll' }}
+                scrolling="yes"
+                id="g5Gko1Ht8zeUQB8XIAbg_1737701234567"
+                className="w-full h-[900px]"
+              ></iframe>
             </motion.div>
           </div>
         </div>
@@ -540,7 +557,7 @@ export default function Home() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-24 bg-background relative border-t border-white/5">
+      <section className="pt-24 pb-4 bg-background relative border-t border-white/5">
         <div className="container mx-auto px-4">
           <div className="flex flex-col items-center justify-center space-y-8">
             <div className="text-center">
@@ -560,26 +577,55 @@ export default function Home() {
       </section>
 
       {/* Mobile Calendar Section (Visible only on mobile/tablet) */}
-      <section id="calendar" className="py-20 lg:hidden relative bg-white/5">
+      <section id="calendar" className="pt-4 pb-20 lg:hidden relative">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold mb-4 text-white">Book Your Free Strategy Call</h2>
-            <div className="max-w-2xl mx-auto text-left bg-white/5 p-6 rounded-lg border border-white/10">
-              <h3 className="font-bold text-white mb-2">What happens on the call:</h3>
-              <p className="text-muted-foreground text-sm leading-relaxed">A 30-minute strategy call where we learn about your business, figure out how many calls you're leaving on the table, and show you exactly how the AI would save those calls and turn them into booked jobs — built around the way you already operate.</p>
+          <div className="text-center">
+            <div className="flex justify-center py-12">
+              <div className="relative w-64 h-64 rounded-full overflow-hidden border-2 border-white/20 cursor-pointer" onClick={toggleVideo}>
+                <video
+                  ref={videoRef}
+                  src="/welcome.mp4"
+                  muted
+                  loop
+                  playsInline
+                  className="w-full h-full object-cover"
+                  style={{ objectPosition: 'center 50%' }}
+                  onTimeUpdate={() => {
+                    const v = videoRef.current;
+                    if (v && v.duration) setVideoProgress(v.currentTime / v.duration);
+                  }}
+                />
+                {/* Play/Pause overlay — only visible when paused */}
+                {!isPlaying && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                    <Play className="w-12 h-12 text-white/80 ml-1" />
+                  </div>
+                )}
+                {/* Circular progress bar */}
+                <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 256 256">
+                  <circle
+                    cx="128"
+                    cy="128"
+                    r="126"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="1"
+                    strokeDasharray={`${2 * Math.PI * 126}`}
+                    strokeDashoffset={`${2 * Math.PI * 126 * (1 - videoProgress)}`}
+                    style={{ transition: "stroke-dashoffset 0.3s linear" }}
+                  />
+                </svg>
+              </div>
             </div>
           </div>
-          <Card className="bg-card border-white/10 overflow-hidden shadow-2xl">
-            <CardContent className="p-0">
-              <iframe
-                src="https://api.leadconnectorhq.com/widget/booking/g5Gko1Ht8zeUQB8XIAbg"
-                style={{ width: '100%', border: 'none', overflow: 'scroll' }}
-                scrolling="yes"
-                id="g5Gko1Ht8zeUQB8XIAbg_mobile"
-                className="w-full h-[900px]"
-              ></iframe>
-            </CardContent>
-          </Card>
+          <h2 className="text-3xl font-bold mb-4 text-white text-center">Book Your Free Strategy Call</h2>
+          <iframe
+            src="https://api.leadconnectorhq.com/widget/booking/g5Gko1Ht8zeUQB8XIAbg"
+            style={{ width: '100%', border: 'none', overflow: 'scroll' }}
+            scrolling="yes"
+            id="g5Gko1Ht8zeUQB8XIAbg_mobile"
+            className="w-full h-[900px]"
+          ></iframe>
         </div>
       </section>
 
