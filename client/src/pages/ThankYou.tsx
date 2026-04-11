@@ -1,107 +1,100 @@
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle2, ArrowRight, Calendar, Video, FileText } from "lucide-react";
-import { Link } from "wouter";
+import { MessageSquare, Clock, Phone } from "lucide-react";
 import { motion } from "framer-motion";
-
 import { useEffect } from "react";
 
-// Declare fbq type for TypeScript
-declare global {
-  interface Window {
-    fbq: any;
-  }
-}
+const FONT_HEADING = "'Cormorant Garamond', Georgia, serif";
+const FONT_BODY = "'DM Sans', system-ui, sans-serif";
 
 export default function ThankYou() {
-  // Track 'Schedule' event when Thank You page loads
   useEffect(() => {
     if (window.fbq) {
-      window.fbq('track', 'Schedule');
+      window.fbq("track", "CompleteRegistration");
     }
   }, []);
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      {/* Background Ambient Glow */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-primary/20 blur-[120px] rounded-full pointer-events-none" />
-
-      <motion.div 
+    <div
+      className="min-h-screen bg-gradient-to-b from-[#f8f8fa] to-white text-[#1a1a2e] flex flex-col items-center justify-center px-5 py-16"
+      style={{ fontFamily: FONT_BODY }}
+    >
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="max-w-2xl w-full relative z-10"
+        className="max-w-lg w-full"
       >
-        <div className="text-center mb-12">
-          <motion.div 
+        {/* Logo */}
+        <div className="text-center mb-10">
+          <span className="text-lg font-semibold tracking-tight text-[#b0b0b8]">
+            olexum
+          </span>
+        </div>
+
+        {/* Heading */}
+        <div className="text-center mb-10">
+          <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.2, duration: 0.5 }}
-            className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-primary/50 shadow-[0_0_30px_-5px_var(--color-primary)]"
+            className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-primary/20"
           >
-            <CheckCircle2 className="w-10 h-10 text-primary" />
+            <Clock className="w-8 h-8 text-primary" />
           </motion.div>
-          
-          {/* Added padding-bottom to prevent gradient text clipping */}
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4 pb-2 bg-clip-text text-transparent bg-gradient-to-b from-white to-white/60">
-            Booking Confirmed
+
+          <h1
+            className="text-[32px] sm:text-[40px] font-semibold tracking-[-0.01em] leading-[1.1] mb-4 text-[#1a1a2e]"
+            style={{ fontFamily: FONT_HEADING }}
+          >
+            You're Almost Set!
           </h1>
-          <p className="text-xl text-muted-foreground">
-            Your strategy session has been scheduled. We look forward to speaking with you.
+          <p className="text-[#6b7280] text-[15px] leading-[1.65]">
+            Your Growth Audit has been requested — but it's not locked in yet.
           </p>
         </div>
 
-        <Card className="bg-card/50 backdrop-blur-xl border-white/10 shadow-2xl mb-8 overflow-hidden">
-          <div className="h-1 w-full bg-gradient-to-r from-transparent via-primary to-transparent opacity-50" />
-          <CardContent className="p-8">
-            <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
-              <span className="w-1 h-6 bg-primary rounded-full" />
-              What to Expect Next
-            </h2>
-            
-            <div className="space-y-6">
-              <div className="flex gap-4 items-start">
-                <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center shrink-0 border border-white/10">
-                  <Calendar className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-medium text-lg text-white">Calendar Invite</h3>
-                  <p className="text-muted-foreground">Check your email for the calendar invitation and meeting link. Please accept the invite to confirm your slot.</p>
-                </div>
-              </div>
-
-              <div className="flex gap-4 items-start">
-                <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center shrink-0 border border-white/10">
-                  <Video className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-medium text-lg text-white">Zoom Meeting</h3>
-                  <p className="text-muted-foreground">The call will be held via Zoom. We recommend joining from a computer to see the live demo of our Voice AI Agents.</p>
-                </div>
-              </div>
-
-              <div className="flex gap-4 items-start">
-                <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center shrink-0 border border-white/10">
-                  <FileText className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-medium text-lg text-white">Preparation</h3>
-                  <p className="text-muted-foreground">Please have a rough estimate of your current lead volume and missed call rates ready for our discussion.</p>
-                </div>
-              </div>
+        {/* Confirm CTA — the most important thing on the page */}
+        <Card className="bg-white border-[#e5e7eb]/50 shadow-[0_2px_16px_rgba(0,0,0,0.05)] rounded-2xl mb-7 overflow-hidden">
+          <div className="h-1 w-full bg-gradient-to-r from-transparent via-primary to-transparent opacity-40" />
+          <CardContent className="p-7 sm:p-9 text-center">
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
+              <MessageSquare className="w-6 h-6 text-primary" />
             </div>
+            <h2
+              className="text-xl sm:text-[22px] font-semibold mb-3 leading-[1.2]"
+              style={{ fontFamily: FONT_HEADING }}
+            >
+              Check your texts to confirm your appointment
+            </h2>
+            <p className="text-sm text-[#6b7280] leading-[1.7]">
+              We just sent you a confirmation message. Your Growth Audit isn't
+              locked in until you confirm via the link in your text or email.
+            </p>
           </CardContent>
         </Card>
 
-        <div className="text-center space-y-4">
-          <p className="text-sm text-muted-foreground">Need to reschedule? The link is in your email confirmation.</p>
-          
-          <a href="https://olexum.solutions" target="_blank" rel="noopener noreferrer">
-            <Button size="lg" className="w-full sm:w-auto min-w-[200px] text-lg h-12 bg-white text-black hover:bg-white/90 transition-all shadow-[0_0_20px_-5px_rgba(255,255,255,0.3)]">
-              Visit Our Website <ArrowRight className="ml-2 w-4 h-4" />
-            </Button>
-          </a>
-        </div>
+        {/* What to expect */}
+        <Card className="bg-white border-[#e5e7eb]/50 shadow-[0_2px_16px_rgba(0,0,0,0.05)] rounded-2xl mb-7 overflow-hidden">
+          <CardContent className="p-7 sm:p-9">
+            <h3
+              className="font-semibold text-lg mb-4 flex items-center gap-2.5 leading-[1.2]"
+              style={{ fontFamily: FONT_HEADING }}
+            >
+              <Phone className="w-4 h-4 text-primary" />
+              What to expect on your call
+            </h3>
+            <p className="text-sm text-[#6b7280] leading-[1.7]">
+              One of Olexum's co-founders will walk you through exactly how much
+              revenue your spa is leaving on the table — and how MedFlow captures
+              it in 48 hours. The call takes about 15 minutes.
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Footer note */}
+        <p className="text-center text-xs text-[#9ca3af]">
+          Need to reschedule? Use the link in your confirmation text or email.
+        </p>
       </motion.div>
     </div>
   );

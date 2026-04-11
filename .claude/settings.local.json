@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(python3:*)",
-      "Bash(claude --version)"
+      "Bash(claude --version)",
+      "Bash(ls *.tsx)",
+      "Bash(grep -v -E '^\\(accordion|button|card|sonner|tooltip\\)\\\\.tsx$')",
+      "Bash(xargs rm:*)"
     ]
   }
 }

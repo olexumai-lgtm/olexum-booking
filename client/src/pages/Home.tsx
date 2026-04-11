@@ -1,131 +1,185 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Check, Phone, TrendingUp, ChevronRight, Info, Play } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Phone,
+  Calendar,
+  Sparkles,
+  Info,
+  ArrowRight,
+  Play,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
+import { motion, AnimatePresence, useInView } from "framer-motion";
 import { useEffect, useRef, useState, useCallback } from "react";
 
-declare global {
-  interface Window {
-    fbq?: (...args: unknown[]) => void;
-    _step1Fired?: boolean;
-    _step1QualifiedFired?: boolean;
-    _leadFired?: boolean;
-  }
+// ── Config ──────────────────────────────────────────────────────────
+const VIDEO_SRC = ""; // Replace with actual video URL
+const GHL_CALENDAR_URL =
+  "https://api.leadconnectorhq.com/widget/booking/g5Gko1Ht8zeUQB8XIAbg";
+
+const FONT_HEADING = "'Cormorant Garamond', Georgia, serif";
+const FONT_BODY = "'DM Sans', system-ui, sans-serif";
+
+// ── Types (see globals.d.ts) ─────────────────────────────────────────
+
+// ── Animated Counter ────────────────────────────────────────────────
+function AnimatedNumber({
+  value,
+  prefix = "",
+  suffix = "",
+  duration = 1.5,
+}: {
+  value: number;
+  prefix?: string;
+  suffix?: string;
+  duration?: number;
+}) {
+  const [display, setDisplay] = useState(0);
+  const ref = useRef<HTMLSpanElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-50px" });
+
+  useEffect(() => {
+    if (!inView) return;
+    const start = Date.now();
+    const end = start + duration * 1000;
+    const step = () => {
+      const now = Date.now();
+      const progress = Math.min((now - start) / (end - start), 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplay(Math.round(eased * value));
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, [inView, value, duration]);
+
+  return (
+    <span ref={ref}>
+      {prefix}
+      {display.toLocaleString()}
+      {suffix}
+    </span>
+  );
 }
 
+// ── Main Component ──────────────────────────────────────────────────
 export default function Home() {
   const [showStickyCTA, setShowStickyCTA] = useState(false);
-  const [missedCalls, setMissedCalls] = useState(5);
-  const [jobValue, setJobValue] = useState(4500);
-  const [isMonthly, setIsMonthly] = useState(true);
-  const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-  const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
-  const [showQualification, setShowQualification] = useState(false);
-  const heroRef = useRef<HTMLElement>(null);
-  const qualifierTriggeredRef = useRef(false);
+  const [showQualifier, setShowQualifier] = useState(false);
   const [disqualified, setDisqualified] = useState(false);
-  const [selectedIndustry, setSelectedIndustry] = useState("");
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [missedCalls, setMissedCalls] = useState(8);
+  const [treatmentValue, setTreatmentValue] = useState(475);
+  const [isMuted, setIsMuted] = useState(true);
   const [videoProgress, setVideoProgress] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
 
-  const toggleVideo = useCallback(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    if (video.paused) {
-      video.muted = false;
-      video.play();
-      setIsPlaying(true);
-    } else {
-      video.pause();
-      setIsPlaying(false);
-    }
+  const heroRef = useRef<HTMLElement>(null);
+  const calendarRef = useRef<HTMLElement>(null);
+  const finalCtaRef = useRef<HTMLElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const qualifierTriggeredRef = useRef(false);
+
+  // Pixel one-time flags
+  const firedViewContent = useRef(false);
+  const firedSchedule = useRef(false);
+  const firedCalcInteraction = useRef(false);
+  const firedVSLPlay = useRef(false);
+  const firedVSL50 = useRef(false);
+  const firedVSLComplete = useRef(false);
+  const firedScroll50 = useRef(false);
+  const firedScroll75 = useRef(false);
+
+  // Revenue calculator
+  const bookingRate = 0.3;
+  const monthlyMissedRevenue = Math.round(
+    missedCalls * treatmentValue * bookingRate * 4.33
+  );
+  const yearlyMissedRevenue = monthlyMissedRevenue * 12;
+
+  // ── Scroll to calendar ──────────────────────────────────────────
+  const scrollToCalendar = useCallback(() => {
+    calendarRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
 
-  const handleQ1Answer = (answer: string) => {
-    if (typeof window !== "undefined" && window.fbq && !window._step1Fired) {
-      window.fbq("trackCustom", "Step1Complete", { answer });
-      window._step1Fired = true;
+  const handleCTAClick = useCallback(() => {
+    window.fbq?.("trackCustom", "CTAClick");
+    scrollToCalendar();
+  }, [scrollToCalendar]);
+
+  // ── Qualifier handlers ──────────────────────────────────────────
+  const handleQ1Yes = () => {
+    if (window.fbq && !window._leadFired) {
+      window.fbq("track", "Lead");
+      window._leadFired = true;
     }
-    if (answer === "yes") {
-      if (typeof window !== "undefined" && window.fbq && !window._step1QualifiedFired) {
-        window.fbq("trackCustom", "Step1Qualified");
-        window._step1QualifiedFired = true;
-      }
-      if (typeof window !== "undefined" && window.fbq && !window._leadFired) {
-        window.fbq("track", "Lead", { content_name: "qualification_form", content_category: "mitigation_restoration" });
-        window._leadFired = true;
-      }
-      setShowQualification(false);
-    } else {
-      setDisqualified(true);
-    }
+    setShowQualifier(false);
+    scrollToCalendar();
   };
 
-  // Lock body scroll when qualifier popup is open
+  const handleQ1No = () => {
+    setDisqualified(true);
+  };
+
+  // ── Lock scroll when qualifier is open ──────────────────────────
   useEffect(() => {
-    if (showQualification) {
-      document.body.style.overflow = "hidden";
-    } else {
+    document.body.style.overflow = showQualifier ? "hidden" : "";
+    return () => {
       document.body.style.overflow = "";
-    }
-    return () => { document.body.style.overflow = ""; };
-  }, [showQualification]);
-
-  // Handle scroll for sticky CTA
-  useEffect(() => {
-    const handleScroll = () => {
-      setShowStickyCTA(window.scrollY > 600);
     };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [showQualifier]);
 
-  // Scroll-triggered qualifier popup (once per session)
+  // ── Scroll-triggered qualifier (once per session) ───────────────
   useEffect(() => {
     if (sessionStorage.getItem("qualifierSeen")) return;
 
-    const handleQualifierScroll = () => {
+    const handleScroll = () => {
       if (qualifierTriggeredRef.current) return;
       const hero = heroRef.current;
       if (!hero) return;
       const heroBottom = hero.getBoundingClientRect().bottom;
       if (heroBottom <= 0) {
         qualifierTriggeredRef.current = true;
-        setShowQualification(true);
+        setShowQualifier(true);
         sessionStorage.setItem("qualifierSeen", "1");
-        window.removeEventListener("scroll", handleQualifierScroll);
+        window.removeEventListener("scroll", handleScroll);
       }
     };
 
-    window.addEventListener("scroll", handleQualifierScroll);
-    return () => window.removeEventListener("scroll", handleQualifierScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Countdown timer to March 28, 2026
+  // ── Sticky CTA visibility ──────────────────────────────────────
   useEffect(() => {
-    const targetDate = new Date("March 28, 2026 23:59:59").getTime();
-    const interval = setInterval(() => {
-      const now = new Date().getTime();
-      const diff = targetDate - now;
-      if (diff < 0) {
-        clearInterval(interval);
-        setCountdown({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-      } else {
-        setCountdown({
-          days: Math.floor(diff / (1000 * 60 * 60 * 24)),
-          hours: Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-          minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
-          seconds: Math.floor((diff % (1000 * 60)) / 1000),
-        });
-      }
-    }, 1000);
-    return () => clearInterval(interval);
+    const handleScroll = () => {
+      const heroBottom = heroRef.current?.getBoundingClientRect().bottom ?? 0;
+      const calendarTop =
+        calendarRef.current?.getBoundingClientRect().top ?? Infinity;
+      const calendarBottom =
+        calendarRef.current?.getBoundingClientRect().bottom ?? Infinity;
+      const inCalendarZone =
+        calendarTop < window.innerHeight && calendarBottom > 0;
+      const finalCtaTop =
+        finalCtaRef.current?.getBoundingClientRect().top ?? Infinity;
+      const inFinalCtaZone = finalCtaTop < window.innerHeight;
+      setShowStickyCTA(heroBottom < 0 && !inCalendarZone && !inFinalCtaZone);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Load GHL Widget Script & Handle Redirect
+  // ── Load GHL widget script ─────────────────────────────────────
   useEffect(() => {
     const script = document.createElement("script");
     script.src = "https://link.msgsndr.com/js/form_embed.js";
@@ -133,11 +187,13 @@ export default function Home() {
     document.body.appendChild(script);
 
     const handleMessage = (e: MessageEvent) => {
-      if (e.data.type === 'survey-submit' || e.data.type === 'calendar-booking-redirect') {
+      if (
+        e.data.type === "survey-submit" ||
+        e.data.type === "calendar-booking-redirect"
+      ) {
         window.location.href = "/thank-you";
       }
     };
-
     window.addEventListener("message", handleMessage);
     return () => {
       document.body.removeChild(script);
@@ -145,407 +201,633 @@ export default function Home() {
     };
   }, []);
 
-  // Calculate revenue
-  const annualOpportunity = missedCalls * jobValue * 0.25 * 52;
-  const displayedRevenue = isMonthly ? annualOpportunity / 12 : annualOpportunity;
+  // ── Meta Pixel: ViewContent (scroll past hero) ────────────────
+  useEffect(() => {
+    const el = calendarRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !firedViewContent.current) {
+          firedViewContent.current = true;
+          window.fbq?.("track", "ViewContent");
+          observer.disconnect();
+        }
+      },
+      { threshold: 0 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
-  const features = [
-    {
-      icon: <Phone className="w-8 h-8 text-primary" />,
-      title: "Zero Missed Calls 24/7",
-      description: "Your AI receptionist picks up every missed call instantly. No voicemail, no missed jobs, no leads lost to competitors.",
-    },
-    {
-      icon: <Check className="w-8 h-8 text-primary" />,
-      title: "Instant Lead Qualification",
-      description: "Callers are qualified and booked directly into your calendar in real time. Your team wakes up to jobs, not voicemails.",
-    },
-    {
-      icon: <TrendingUp className="w-8 h-8 text-primary" />,
-      title: "Beyond the Booking",
-      description: "Because the work doesn't stop there. Your team focuses on the job site. Our system handles everything before and after - lead nurture, follow-up, and review collection.",
-    },
-  ];
+  // ── Meta Pixel: Schedule (calendar visible) ──────────────────
+  useEffect(() => {
+    const el = calendarRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !firedSchedule.current) {
+          firedSchedule.current = true;
+          window.fbq?.("track", "Schedule");
+          observer.disconnect();
+        }
+      },
+      { threshold: 0 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
-  const faqs = [
-    {
-      question: "How does the 2-week free trial work?",
-      answer: "We build and deploy a custom Voice AI Agent for your business completely free for 14 days. You only pay if you decide to keep it after seeing the results.",
-    },
-    {
-      question: "Will it sound robotic?",
-      answer: "Not at all. We use advanced Voice AI that sounds indistinguishable from a human, with natural pauses, intonation, and latency under 500ms.",
-    },
-    {
-      question: "What industries do you support?",
-      answer: "We specialize in service-based businesses including HVAC, Plumbing, Med Spas, Dental Offices, Legal Firms, Real Estate, and Restoration Businesses.",
-    },
-    {
-      question: "Does it integrate with my CRM?",
-      answer: "Yes, we integrate seamlessly with all major CRM platforms to sync leads and appointments instantly.",
-    },
-  ];
+  // ── Meta Pixel: ScrollDepth50 & ScrollDepth75 ────────────────
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.scrollY;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      if (docHeight <= 0) return;
+      const pct = scrollTop / docHeight;
+      if (pct >= 0.5 && !firedScroll50.current) {
+        firedScroll50.current = true;
+        window.fbq?.("trackCustom", "ScrollDepth50");
+      }
+      if (pct >= 0.75 && !firedScroll75.current) {
+        firedScroll75.current = true;
+        window.fbq?.("trackCustom", "ScrollDepth75");
+      }
+      if (firedScroll50.current && firedScroll75.current) {
+        window.removeEventListener("scroll", handleScroll);
+      }
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
-  void showStickyCTA;
+  // ── Meta Pixel: VSL events (play, 50%, complete) ─────────────
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const onPlay = () => {
+      if (!firedVSLPlay.current) {
+        firedVSLPlay.current = true;
+        window.fbq?.("trackCustom", "VSLPlay");
+      }
+    };
+    const onTimeUpdate = () => {
+      if (!video.duration) return;
+      const pct = video.currentTime / video.duration;
+      if (pct >= 0.5 && !firedVSL50.current) {
+        firedVSL50.current = true;
+        window.fbq?.("trackCustom", "VSL50");
+      }
+      if (pct >= 0.95 && !firedVSLComplete.current) {
+        firedVSLComplete.current = true;
+        window.fbq?.("trackCustom", "VSLComplete");
+      }
+    };
+    const onEnded = () => {
+      if (!firedVSLComplete.current) {
+        firedVSLComplete.current = true;
+        window.fbq?.("trackCustom", "VSLComplete");
+      }
+    };
+    video.addEventListener("play", onPlay);
+    video.addEventListener("timeupdate", onTimeUpdate);
+    video.addEventListener("ended", onEnded);
+    return () => {
+      video.removeEventListener("play", onPlay);
+      video.removeEventListener("timeupdate", onTimeUpdate);
+      video.removeEventListener("ended", onEnded);
+    };
+  }, []);
+
+  // ── Video handlers ─────────────────────────────────────────────
+  const toggleMute = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (!isPlaying) {
+      video.muted = false;
+      video.play();
+      setIsPlaying(true);
+      setIsMuted(false);
+    } else {
+      video.muted = !video.muted;
+      setIsMuted(video.muted);
+    }
+  }, [isPlaying]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const onTimeUpdate = () => {
+      if (video.duration) {
+        setVideoProgress((video.currentTime / video.duration) * 100);
+      }
+    };
+    video.addEventListener("timeupdate", onTimeUpdate);
+    return () => video.removeEventListener("timeupdate", onTimeUpdate);
+  }, []);
+
+  // ── Fade-in animation variant ──────────────────────────────────
+  const fadeUp = {
+    hidden: { opacity: 0, y: 28 },
+    visible: (i: number) => ({
+      opacity: 1,
+      y: 0,
+      transition: { delay: i * 0.12, duration: 0.6, ease: "easeOut" as const },
+    }),
+  };
 
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-x-hidden font-sans selection:bg-primary/30">
+    <div
+      className="min-h-screen bg-white text-[#1a1a2e] overflow-x-hidden selection:bg-primary/20"
+      style={{ fontFamily: FONT_BODY }}
+    >
+      {/* ════════════════════════════════════════════════════════════
+          SECTION 1: HERO
+      ════════════════════════════════════════════════════════════ */}
+      <section
+        ref={heroRef}
+        className="relative bg-gradient-to-b from-[#f8f8fa] to-white"
+      >
+        <div className="container max-w-2xl lg:max-w-4xl mx-auto pt-4 sm:pt-6 pb-12 sm:pb-20 px-5">
+          {/* Logo */}
+          <div className="mb-6 sm:mb-12">
+            <span
+              className="text-lg font-semibold tracking-tight text-[#b0b0b8]"
+              style={{ fontFamily: FONT_BODY }}
+            >
+              olexum
+            </span>
+          </div>
 
-      {/* Qualification Overlay */}
+          {/* Headline — centered */}
+          <motion.h1
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-[32px] sm:text-[44px] lg:text-[56px] font-semibold leading-[1.1] tracking-[-0.01em] mb-4 sm:mb-5 text-center"
+            style={{ fontFamily: FONT_HEADING }}
+          >
+            Stop Paying for Clients You Never See.
+          </motion.h1>
+
+          {/* Subheadline — centered */}
+          <motion.p
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="text-[15px] sm:text-lg text-[#6b7280] leading-[1.65] mb-8 sm:mb-10 max-w-xl mx-auto text-center"
+          >
+            MedFlow is a full client acquisition system built around your
+            med spa — from first call to confirmed booking to five-star review.{" "}
+            <span className="text-[17px] sm:text-[21px] font-bold text-[#1a1a2e] whitespace-nowrap">You only pay per booked appointment.</span>
+          </motion.p>
+
+          {/* VSL Video Player */}
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="relative rounded-2xl overflow-hidden bg-[#f0f0f2] aspect-video mb-8 sm:mb-10 shadow-lg"
+          >
+            {VIDEO_SRC ? (
+              <>
+                <video
+                  ref={videoRef}
+                  src={VIDEO_SRC}
+                  muted
+                  autoPlay
+                  playsInline
+                  className="w-full h-full object-cover"
+                />
+                {/* Progress bar */}
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/10">
+                  <div
+                    className="h-full bg-primary transition-all duration-300"
+                    style={{ width: `${videoProgress}%` }}
+                  />
+                </div>
+                {/* Mute/unmute button */}
+                <button
+                  onClick={toggleMute}
+                  className="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white transition-colors"
+                >
+                  {isMuted ? (
+                    <VolumeX className="w-5 h-5 text-[#1a1a2e]" />
+                  ) : (
+                    <Volume2 className="w-5 h-5 text-[#1a1a2e]" />
+                  )}
+                </button>
+              </>
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center gap-3">
+                <div className="w-16 h-16 rounded-full bg-white/80 flex items-center justify-center shadow-md">
+                  <Play className="w-7 h-7 text-[#1a1a2e] ml-1" />
+                </div>
+                <span className="text-sm text-[#6b7280]">
+                  Video loading...
+                </span>
+              </div>
+            )}
+          </motion.div>
+
+          {/* Value props — left-aligned */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.35 }}
+            className="flex flex-col sm:flex-row gap-2.5 sm:gap-7 mb-8 sm:mb-10"
+          >
+            {[
+              { icon: Phone, text: "Every call answered, qualified, and converted — 24/7" },
+              {
+                icon: Calendar,
+                text: "Appointments booked, confirmed, and followed up automatically",
+              },
+              {
+                icon: Sparkles,
+                text: "Custom-built around your services in 48 hours",
+              },
+            ].map(({ icon: Icon, text }) => (
+              <div key={text} className="flex items-center gap-2.5">
+                <Icon className="w-4 h-4 text-primary shrink-0" />
+                <span className="text-[13px] sm:text-sm text-[#4b5563] leading-[1.6]">
+                  {text}
+                </span>
+              </div>
+            ))}
+          </motion.div>
+
+          {/* Primary CTA — centered */}
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.45 }}
+            className="text-center"
+          >
+            <Button
+              onClick={handleCTAClick}
+              size="lg"
+              className="w-full sm:w-auto text-[15px] font-semibold px-9 h-13 bg-primary hover:bg-[#a67d56] text-white rounded-xl shadow-[0_4px_20px_rgba(184,146,106,0.35)] transition-all hover:shadow-[0_6px_28px_rgba(184,146,106,0.45)] active:scale-[0.98]"
+            >
+              Book Your Free Growth Audit
+            </Button>
+            <p className="text-xs text-[#9ca3af] mt-3 sm:mt-4 text-center">
+              No setup fees &middot; No retainers &middot; Only pay per booked appointment
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════════════════════════
+          SECTION 2: Q1 QUALIFIER (Scroll-triggered modal)
+      ════════════════════════════════════════════════════════════ */}
       <AnimatePresence>
-        {showQualification && (
+        {showQualifier && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-background/35 backdrop-blur-sm flex items-center justify-center p-4"
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-md px-5"
           >
-            <div className="w-full max-w-md">
-              {disqualified ? (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-center space-y-6"
-                >
-                  <h2 className="text-3xl font-bold text-white">Not you? No problem.</h2>
-                  <p className="text-[#8b949e] text-lg leading-relaxed">
-                    This page is built for restoration pros, but Olexum powers AI systems for all kinds of service businesses.
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 20 }}
+              transition={{ duration: 0.3 }}
+              className="bg-white rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.1)] p-8 sm:p-10 max-w-md w-full border border-[#e5e7eb]/40"
+            >
+              {!disqualified ? (
+                <>
+                  <p className="text-[11px] font-medium text-[#9ca3af] uppercase tracking-[0.1em] mb-3">
+                    Question 1 of 1
                   </p>
-                  <div className="space-y-2 text-left">
-                    <label className="text-[13px] text-[#8b949e] block">What type of business do you run?</label>
-                    <select
-                      className="w-full h-[48px] px-4 bg-[#161b22] border border-[rgba(99,140,255,0.2)] rounded-[10px] text-white appearance-none focus:outline-none focus:border-[#4f8fff] transition-colors"
-                      value={selectedIndustry}
-                      onChange={(e) => setSelectedIndustry(e.target.value)}
-                    >
-                      <option value="" disabled>Select your industry</option>
-                      <option value="plumbing">Plumbing</option>
-                      <option value="hvac">HVAC</option>
-                      <option value="roofing">Roofing</option>
-                      <option value="electrical">Electrical</option>
-                      <option value="landscaping">Landscaping</option>
-                      <option value="pest-control">Pest Control</option>
-                      <option value="cleaning-janitorial">Cleaning / Janitorial</option>
-                      <option value="general-contractor">General Contractor</option>
-                      <option value="med-spa-wellness">Med Spa / Wellness</option>
-                      <option value="dental-medical">Dental / Medical</option>
-                      <option value="legal">Legal</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
-                  <div className="space-y-4 pt-4">
-                    <Button
-                      className="w-full h-[48px] text-base font-medium bg-[#4f8fff] hover:bg-[#4f8fff]/90 text-white rounded-[10px] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                      disabled={!selectedIndustry}
-                      onClick={() => window.location.href = `https://olexum.solutions?industry=${selectedIndustry}`}
-                    >
-                      See how Olexum works for you →
-                    </Button>
-                  </div>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="q1"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  className="space-y-8"
-                >
-                  <p className="text-center text-[#8b949e] text-sm font-medium tracking-wide">Question 1 of 1</p>
-                  <h2
-                    className="text-2xl font-bold text-center text-white leading-tight"
-                    style={{ fontSize: "22px" }}
+                  <h3
+                    className="text-2xl sm:text-[28px] font-semibold mb-8 leading-[1.2]"
+                    style={{ fontFamily: FONT_HEADING }}
                   >
-                    Are you a mitigation contractor or restoration company owner?
-                  </h2>
-                  <div className="grid gap-4 pt-4">
+                    Do you own or manage a med spa?
+                  </h3>
+                  <div className="flex flex-col gap-3">
                     <Button
+                      onClick={handleQ1Yes}
                       size="lg"
-                      className="h-16 text-lg font-semibold bg-primary hover:bg-primary/90 transition-all hover:scale-[1.02]"
-                      onClick={() => handleQ1Answer("yes")}
+                      className="w-full h-13 bg-primary hover:bg-[#a67d56] text-white rounded-xl font-semibold text-[15px]"
                     >
                       Yes, that's me
                     </Button>
                     <Button
-                      size="lg"
+                      onClick={handleQ1No}
                       variant="outline"
-                      className="h-16 text-lg font-medium border-white/10 hover:bg-white/5 hover:text-white transition-all"
-                      onClick={() => handleQ1Answer("no")}
+                      size="lg"
+                      className="w-full h-13 rounded-xl font-medium text-[15px] border-[#e5e7eb] text-[#6b7280] hover:bg-[#f9fafb]"
                     >
                       No
                     </Button>
                   </div>
-                </motion.div>
+                </>
+              ) : (
+                <>
+                  <h3
+                    className="text-2xl font-semibold mb-3 leading-[1.2]"
+                    style={{ fontFamily: FONT_HEADING }}
+                  >
+                    Thanks for your interest
+                  </h3>
+                  <p className="text-[#6b7280] text-sm leading-[1.65] mb-7">
+                    This offer is specifically designed for med spa owners. If
+                    you run a different type of business, reach out to us at{" "}
+                    <a
+                      href="mailto:hello@olexum.solutions"
+                      className="text-primary hover:underline"
+                    >
+                      hello@olexum.solutions
+                    </a>
+                    .
+                  </p>
+                  <Button
+                    onClick={() => {
+                      setShowQualifier(false);
+                      setDisqualified(false);
+                    }}
+                    variant="outline"
+                    className="w-full h-11 rounded-xl border-[#e5e7eb] text-[#6b7280]"
+                  >
+                    Close
+                  </Button>
+                </>
               )}
-            </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 bg-transparent border-none">
-        <div className="container mx-auto px-4 h-24 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <img
-              src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663309562810/xeUVpNNzaWDHjuqd.png"
-              alt="Olexum Logo"
-              className="h-12 md:h-16 w-auto object-contain drop-shadow-lg"
+      {/* ════════════════════════════════════════════════════════════
+          SECTION 3: CALENDAR BOOKING
+      ════════════════════════════════════════════════════════════ */}
+      <section
+        ref={calendarRef}
+        id="calendar"
+        className="bg-[#fafafa] py-20 sm:py-24 lg:py-28"
+      >
+        <div className="container max-w-2xl lg:max-w-4xl mx-auto px-5">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-60px" }}
+            variants={fadeUp}
+            custom={0}
+            className="text-center mb-12"
+          >
+            <h2
+              className="text-[28px] sm:text-4xl lg:text-[44px] font-semibold tracking-[-0.01em] leading-[1.1] mb-5"
+              style={{ fontFamily: FONT_HEADING }}
+            >
+              Book Your Free Growth Audit
+            </h2>
+            <p className="text-[#6b7280] text-[15px] sm:text-lg max-w-lg mx-auto leading-[1.65]">
+              In 15 minutes, we'll show you exactly how much revenue is slipping
+              through your current process — and how MedFlow captures it from first call to five-star review.
+            </p>
+            <p className="text-sm text-[#9ca3af] mt-4">
+              You'll speak with one of Olexum's co-founders.
+            </p>
+          </motion.div>
+
+          {/* GHL Calendar Embed */}
+          <div className="bg-white rounded-2xl shadow-sm border border-[#e5e7eb]/60 overflow-hidden">
+            <iframe
+              src={GHL_CALENDAR_URL}
+              style={{ width: "100%", border: "none", overflow: "scroll" }}
+              scrolling="yes"
+              id="g5Gko1Ht8zeUQB8XIAbg_1737701234567"
+              className="w-full h-[700px] sm:h-[750px]"
+              title="Book a call"
             />
           </div>
-          <Button variant="outline" className="hidden md:flex border-white/20 bg-black/20 backdrop-blur-sm hover:bg-white/10 hover:text-white transition-colors" onClick={() => document.getElementById('calendar')?.scrollIntoView({ behavior: 'smooth' })}>
-            Book Strategy Call
-          </Button>
-        </div>
-      </nav>
-
-      {/* Hero Section */}
-      <section ref={heroRef} className="relative pt-20 pb-2 lg:pt-24 lg:pb-4 overflow-hidden">
-        {/* Background Elements */}
-        <div className="absolute top-0 right-0 w-full h-full z-0 pointer-events-none bg-background">
-          <div className="absolute inset-0 bg-gradient-to-b from-blue-900/5 to-transparent" />
-        </div>
-
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8 }}
-            >
-              <div className="inline-flex items-center gap-2 px-4 py-2 md:px-6 md:py-3 rounded-lg bg-blue-600/20 border border-blue-500 text-blue-400 text-sm md:text-base font-black tracking-wide mb-4 shadow-[0_0_25px_-5px_rgba(37,99,235,0.5)] animate-pulse uppercase whitespace-nowrap">
-                <span className="hidden md:inline mr-2">2 WEEKS FREE — OFFER ENDS IN:</span>
-                <span className="md:hidden mr-1">OFFER ENDS:</span>
-                <span className="font-mono text-base md:text-xl text-white">
-                  <span className="hidden md:inline">
-                    {countdown.days} DAYS : {countdown.hours.toString().padStart(2, "0")} HRS : {countdown.minutes.toString().padStart(2, "0")} MIN : {countdown.seconds.toString().padStart(2, "0")} SEC
-                  </span>
-                  <span className="md:hidden">
-                    {countdown.days}d {countdown.hours.toString().padStart(2, "0")}h {countdown.minutes.toString().padStart(2, "0")}m {countdown.seconds.toString().padStart(2, "0")}s
-                  </span>
-                </span>
-              </div>
-
-              <h1 className="text-4xl sm:text-6xl md:text-8xl font-black tracking-tighter mb-4 leading-[0.9] uppercase">
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-blue-600 whitespace-nowrap">NEVER</span> lose a $10k job again.
-              </h1>
-
-              <p className="text-xl md:text-2xl text-muted-foreground font-medium mb-4 max-w-2xl">
-                A Complete AI System - Built for Restoration.
-              </p>
-
-              <div className="space-y-4 mb-4 md:mb-8">
-                {["Zero Missed Calls 24/7", "Every Lead Screened & Qualified Instantly", "Inspections Booked While You Sleep"].map((item, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, x: -50, scale: 0.8 }}
-                    whileInView={{ opacity: 1, x: 0, scale: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: 0.2 + index * 0.15, type: "spring", stiffness: 120, damping: 12 }}
-                    className="flex items-center gap-4 p-4 rounded-xl border border-white/5 bg-white/5 backdrop-blur-sm hover:bg-white/10 transition-colors"
-                  >
-                    <motion.div
-                      animate={{
-                        scale: [1, 1.3, 1],
-                        boxShadow: ["0 0 0px var(--color-primary)", "0 0 20px var(--color-primary)", "0 0 0px var(--color-primary)"],
-                      }}
-                      transition={{ duration: 2, repeat: Infinity, delay: index * 0.5 }}
-                      className="h-3 w-3 shrink-0 rounded-full bg-primary shadow-[0_0_10px_var(--color-primary)]"
-                    />
-                    <span className="font-bold tracking-wide text-lg md:text-xl text-white">{item}</span>
-                  </motion.div>
-                ))}
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-4 mt-8">
-                <Button size="lg" className="hidden lg:flex text-xl font-bold h-16 px-10 bg-white text-black hover:bg-white/90 shadow-[0_0_40px_-5px_rgba(255,255,255,0.6)] transition-all hover:scale-105 uppercase tracking-wide" onClick={() => document.getElementById('calendar')?.scrollIntoView({ behavior: 'smooth' })}>
-                  CLAIM 2 WEEKS FREE <ChevronRight className="ml-2 w-6 h-6" />
-                </Button>
-              </div>
-            </motion.div>
-
-            {/* Calendar Widget Container - Desktop Right Side */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="hidden lg:block"
-              id="calendar-desktop"
-            >
-              <iframe
-                src="https://api.leadconnectorhq.com/widget/booking/g5Gko1Ht8zeUQB8XIAbg"
-                style={{ width: '100%', border: 'none', overflow: 'scroll' }}
-                scrolling="yes"
-                id="g5Gko1Ht8zeUQB8XIAbg_1737701234567"
-                className="w-full h-[900px]"
-              ></iframe>
-            </motion.div>
-          </div>
         </div>
       </section>
 
-      {/* Revenue Opportunity Calculator */}
-      <section className="py-0 my-0 bg-transparent">
-        <div className="container mx-auto px-4 py-0 my-0">
-          <Accordion type="single" collapsible className="w-full max-w-3xl mx-auto py-0 my-0" onValueChange={(value) => setIsCalculatorOpen(value === "calculator")}>
-            <AccordionItem value="calculator" className="border-none py-0 my-0">
-              <AccordionTrigger className="hover:no-underline py-0 my-0 [&>svg]:hidden">
-                <div className="w-full">
-                  {isCalculatorOpen ? (
-                    <div className="w-full bg-[#0d1117] border border-[rgba(255,107,107,0.15)] rounded-t-xl p-6 pb-2 cursor-pointer text-left border-b-0 rounded-b-none">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-2 h-2 rounded-full bg-[#ff4d4d] shrink-0" />
-                          <span className="text-white font-bold text-base leading-tight">You're losing money right now</span>
-                        </div>
-                        <ChevronRight className="w-5 h-5 text-[#4f8fff] -rotate-90" />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="w-full bg-[#0d1117] border border-[rgba(255,107,107,0.15)] rounded-xl p-6 cursor-pointer text-left">
-                      <div className="flex items-center gap-2.5 mb-2">
-                        <div className="w-2 h-2 rounded-full bg-[#ff4d4d] shrink-0" />
-                        <span className="text-white font-bold text-base leading-tight">You're losing money right now</span>
-                      </div>
-                      <p className="text-[#8b949e] text-[13px] leading-relaxed mb-4 pl-[18px]">
-                        The average restoration company bleeds <span className="text-[#ff6b6b] font-semibold">$24K+/mo</span> in missed calls. Most don't even know it.
-                      </p>
-                      <div className="flex items-center justify-between pl-[18px]">
-                        <span className="text-[#4f8fff] font-medium text-sm">See what you're losing →</span>
-                        <ChevronRight className="w-5 h-5 text-[#4f8fff] rotate-90" />
-                      </div>
-                    </div>
-                  )}
+      {/* ════════════════════════════════════════════════════════════
+          SECTION 4: THE PROBLEM — Revenue Calculator
+      ════════════════════════════════════════════════════════════ */}
+      <section className="bg-white py-20 sm:py-24 lg:py-28">
+        <div className="container max-w-2xl lg:max-w-4xl mx-auto px-5">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-60px" }}
+            variants={fadeUp}
+            custom={0}
+          >
+            <h2
+              className="text-[28px] sm:text-4xl lg:text-[44px] font-semibold tracking-[-0.01em] leading-[1.1] mb-5 text-center"
+              style={{ fontFamily: FONT_HEADING }}
+            >
+              Your Clients Are Calling.
+              <br className="hidden sm:block" />
+              <span className="text-[#9ca3af]">
+                {" "}
+                Are They Booking?
+              </span>
+            </h2>
+          </motion.div>
+
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-40px" }}
+            variants={fadeUp}
+            custom={1}
+          >
+            <Card className="mt-12 bg-[#fafafa] border-[#e5e7eb]/60 shadow-sm rounded-2xl overflow-hidden">
+              <CardContent className="p-6 sm:p-10">
+                {/* Slider 1: Missed Calls */}
+                <div className="mb-9">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="text-sm font-medium text-[#4b5563]">
+                      Missed Calls Per Week
+                    </label>
+                    <span
+                      className="text-xl font-semibold text-[#1a1a2e]"
+                      style={{ fontFamily: FONT_HEADING }}
+                    >
+                      {missedCalls}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={3}
+                    max={30}
+                    value={missedCalls}
+                    onChange={(e) => {
+                      setMissedCalls(Number(e.target.value));
+                      if (!firedCalcInteraction.current) {
+                        firedCalcInteraction.current = true;
+                        window.fbq?.("trackCustom", "CalculatorInteraction");
+                      }
+                    }}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-[#9ca3af] mt-1.5">
+                    <span>3</span>
+                    <span>30</span>
+                  </div>
                 </div>
-              </AccordionTrigger>
-              <AccordionContent className="pt-4 pb-2">
-                <Card className="bg-black/40 border-white/10 backdrop-blur-md">
-                  <CardContent className="p-6 md:p-8">
-                    <div className="grid md:grid-cols-2 gap-8 items-center">
-                      <div className="space-y-6">
-                        <div className="space-y-2">
-                          <h3 className="text-xl font-bold text-white">Calculate Your Missed Revenue</h3>
-                          <p className="text-sm text-muted-foreground">
-                            See exactly how much revenue you could be capturing with 24/7 AI coverage.
-                          </p>
-                        </div>
 
-                        <div className="space-y-4">
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium text-muted-foreground">Missed Calls Per Week</label>
-                            <input
-                              type="range"
-                              min="1"
-                              max="30"
-                              value={missedCalls}
-                              onChange={(e) => setMissedCalls(parseInt(e.target.value))}
-                              className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-primary"
-                            />
-                            <div className="flex justify-between text-xs text-muted-foreground">
-                              <span>1</span>
-                              <span className="text-primary font-bold text-base">{missedCalls}</span>
-                              <span>30</span>
-                            </div>
-                          </div>
+                {/* Slider 2: Treatment Value */}
+                <div className="mb-9">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="text-sm font-medium text-[#4b5563]">
+                      Average Treatment Value
+                    </label>
+                    <span
+                      className="text-xl font-semibold text-[#1a1a2e]"
+                      style={{ fontFamily: FONT_HEADING }}
+                    >
+                      ${treatmentValue}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={200}
+                    max={1000}
+                    step={25}
+                    value={treatmentValue}
+                    onChange={(e) => {
+                      setTreatmentValue(Number(e.target.value));
+                      if (!firedCalcInteraction.current) {
+                        firedCalcInteraction.current = true;
+                        window.fbq?.("trackCustom", "CalculatorInteraction");
+                      }
+                    }}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-[#9ca3af] mt-1.5">
+                    <span>$200</span>
+                    <span>$1,000</span>
+                  </div>
+                </div>
 
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium text-muted-foreground">Average Job Value</label>
-                            <input
-                              type="range"
-                              min="1500"
-                              max="15000"
-                              step="250"
-                              value={jobValue}
-                              onChange={(e) => setJobValue(parseInt(e.target.value))}
-                              className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-primary"
-                            />
-                            <div className="flex justify-between text-xs text-muted-foreground">
-                              <span>$1,500</span>
-                              <span className="text-primary font-bold text-base">${jobValue.toLocaleString()}</span>
-                              <span>$15,000</span>
-                            </div>
-                          </div>
+                {/* Fixed Rate */}
+                <div className="flex items-center gap-2 mb-9 text-sm text-[#6b7280]">
+                  <span>Call-to-Booking Rate: 30%</span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="w-3.5 h-3.5 text-[#9ca3af] cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-[240px] text-sm">
+                      Industry average conversion rate from phone call to booked
+                      appointment for med spas.
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
 
-                          <div className="flex items-center gap-2 py-2 border-t border-white/5 border-b border-white/5">
-                            <span className="text-sm font-medium text-white">Avg. Call-to-Job Rate: 25%</span>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger>
-                                  <Info className="w-4 h-4 text-muted-foreground hover:text-primary transition-colors" />
-                                </TooltipTrigger>
-                                <TooltipContent className="bg-black border border-white/10 text-white p-2 max-w-xs text-xs">
-                                  <p>Industry data shows roughly 1 in 4 restoration inquiry calls convert to a paid job.</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </div>
-                        </div>
+                {/* Revenue Output */}
+                <div className="bg-white rounded-xl p-7 sm:p-8 border border-[#e5e7eb]/60 text-center">
+                  <p className="text-xs text-[#9ca3af] uppercase tracking-[0.08em] mb-2">
+                    Estimated Monthly Missed Revenue
+                  </p>
+                  <p
+                    className="text-4xl sm:text-5xl font-bold text-primary mb-5"
+                    style={{ fontFamily: FONT_HEADING }}
+                  >
+                    <AnimatedNumber
+                      value={monthlyMissedRevenue}
+                      prefix="$"
+                    />
+                  </p>
+                  <p className="text-xs text-[#9ca3af] uppercase tracking-[0.08em] mb-2">
+                    Estimated Yearly Missed Revenue
+                  </p>
+                  <p
+                    className="text-2xl sm:text-3xl font-bold text-[#1a1a2e]"
+                    style={{ fontFamily: FONT_HEADING }}
+                  >
+                    <AnimatedNumber value={yearlyMissedRevenue} prefix="$" />
+                  </p>
+                </div>
 
-                        <div className="bg-primary/10 p-4 rounded-lg border border-primary/20">
-                          <p className="text-xs text-primary/80 leading-relaxed">
-                            <strong className="text-primary">Did you know?</strong> 80% of callers hang up when they reach voicemail, and most won't call back.
-                          </p>
-                        </div>
-                      </div>
+                {/* Stat callout */}
+                <p className="text-center text-sm text-[#6b7280] mt-7 leading-[1.65]">
+                  79% of med spa clients have skipped booking entirely because
+                  they couldn't get through.
+                </p>
 
-                      <div className="bg-white/5 rounded-xl p-6 border border-white/10 flex flex-col justify-center items-center text-center h-full">
-                        <div className="flex items-center bg-black/40 rounded-full p-1 mb-6 border border-white/10">
-                          <button
-                            onClick={() => setIsMonthly(true)}
-                            className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${isMonthly ? "bg-[#4f8fff] text-white shadow-lg" : "text-muted-foreground hover:text-white"}`}
-                          >
-                            Monthly
-                          </button>
-                          <button
-                            onClick={() => setIsMonthly(false)}
-                            className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${isMonthly ? "text-muted-foreground hover:text-white" : "bg-[#4f8fff] text-white shadow-lg"}`}
-                          >
-                            Yearly
-                          </button>
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-2">Estimated {isMonthly ? "Monthly" : "Annual"} Opportunity</p>
-                        <p className="text-4xl md:text-5xl font-black mb-4" style={{ background: "linear-gradient(135deg, #ff4d4d, #ff6b6b)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-                          ${Math.round(displayedRevenue).toLocaleString()}
-                        </p>
-                        <Button className="w-full bg-white text-black hover:bg-white/90 font-bold text-lg py-6 shadow-lg hover:scale-[1.02] transition-transform" onClick={() => document.getElementById('calendar')?.scrollIntoView({ behavior: 'smooth' })}>
-                          UNLOCK THIS REVENUE
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
+                {/* CTA */}
+                <div className="text-center mt-7">
+                  <Button
+                    onClick={scrollToCalendar}
+                    variant="outline"
+                    className="border-primary text-primary hover:bg-primary/5 rounded-xl font-semibold h-11 px-7"
+                  >
+                    Stop Leaving Revenue on the Table
+                    <ArrowRight className="ml-2 w-4 h-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
       </section>
 
-      {/* Features Grid */}
-      <section className="py-0 my-0 pt-0 mt-0 bg-background relative">
-        <div className="container mx-auto px-4 pt-20">
-          <div className="text-center max-w-3xl mx-auto mb-8">
-            <h2 className="text-3xl md:text-5xl font-bold mb-6 text-white">Your Entire Lead-to-Job Pipeline — Automated</h2>
-            <p className="text-lg text-muted-foreground">
-              One system that handles calls, qualifies leads, books jobs, nurtures prospects, and collects reviews — 24/7.
-            </p>
-          </div>
+      {/* ════════════════════════════════════════════════════════════
+          SECTION 5: HOW IT WORKS — 3 Feature Cards
+      ════════════════════════════════════════════════════════════ */}
+      <section className="bg-[#f8f8fa] py-20 sm:py-24 lg:py-28">
+        <div className="container max-w-2xl lg:max-w-5xl mx-auto px-5">
+          <motion.h2
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-60px" }}
+            variants={fadeUp}
+            custom={0}
+            className="text-[28px] sm:text-4xl lg:text-[44px] font-semibold tracking-[-0.01em] leading-[1.1] text-center mb-14 sm:mb-16"
+            style={{ fontFamily: FONT_HEADING }}
+          >
+            Your Spa, Fully Covered — In 48 Hours
+          </motion.h2>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
+          <div className="grid gap-6 sm:gap-7 lg:grid-cols-3">
+            {[
+              {
+                icon: Phone,
+                title: "Every Lead Captured",
+                description:
+                  "MedFlow answers every call instantly — during treatments, after hours, weekends. It qualifies each caller, collects their information, and moves them into your pipeline. No voicemail. No missed opportunities.",
+              },
+              {
+                icon: Calendar,
+                title: "Booked, Confirmed & Followed Up",
+                description:
+                  "Qualified leads are booked directly into your calendar, confirmed via text, and automatically followed up if they don't show. No-shows get re-engaged. Nothing falls through the cracks.",
+              },
+              {
+                icon: Sparkles,
+                title: "Built Around Your Spa",
+                description:
+                  "MedFlow isn't a generic tool you plug in. We build it around your services, pricing, availability, and workflow — then handle ongoing nurture and review collection so every client becomes a repeat client.",
+              },
+            ].map((feature, i) => (
               <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
+                key={feature.title}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: "-40px" }}
+                variants={fadeUp}
+                custom={i}
               >
-                <Card className="bg-white/5 border-white/10 hover:border-primary/50 transition-colors duration-300 h-full group">
-                  <CardContent className="p-8">
-                    <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 border border-primary/20">
-                      {feature.icon}
+                <Card className="bg-white border-[#e5e7eb]/40 shadow-[0_2px_16px_rgba(0,0,0,0.05)] rounded-2xl h-full transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] hover:-translate-y-1">
+                  <CardContent className="p-7 sm:p-8">
+                    <div className="w-12 h-12 rounded-xl bg-[#f5f5f7] flex items-center justify-center mb-6">
+                      <feature.icon className="w-5 h-5 text-[#4b5563]" />
                     </div>
-                    <h3 className="text-xl font-bold mb-3 text-white">{feature.title}</h3>
-                    <p className="text-muted-foreground leading-relaxed">
+                    <h3
+                      className="text-xl sm:text-[22px] font-semibold mb-3 leading-[1.2]"
+                      style={{ fontFamily: FONT_HEADING }}
+                    >
+                      {feature.title}
+                    </h3>
+                    <p className="text-sm text-[#6b7280] leading-[1.7]">
                       {feature.description}
                     </p>
                   </CardContent>
@@ -556,138 +838,197 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="pt-24 pb-4 bg-background relative border-t border-white/5">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col items-center justify-center space-y-8">
-            <div className="text-center">
-              <div className="text-5xl md:text-6xl font-bold text-[#4f8fff] mb-2">30</div>
-              <div className="text-lg md:text-xl text-muted-foreground font-medium">Days</div>
-            </div>
-            <div className="text-center">
-              <div className="text-5xl md:text-6xl font-bold text-[#4f8fff] mb-2">311</div>
-              <div className="text-lg md:text-xl text-muted-foreground font-medium">Calls Answered</div>
-            </div>
-            <div className="text-center">
-              <div className="text-5xl md:text-6xl font-bold text-[#4f8fff] mb-2">29</div>
-              <div className="text-lg md:text-xl text-muted-foreground font-medium">Jobs Booked</div>
-            </div>
+      {/* ════════════════════════════════════════════════════════════
+          SECTION 6: SOCIAL PROOF / RESULTS
+      ════════════════════════════════════════════════════════════ */}
+      <section className="bg-white py-20 sm:py-24 lg:py-28">
+        <div className="container max-w-2xl lg:max-w-4xl mx-auto px-5 text-center">
+          <motion.p
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-60px" }}
+            variants={fadeUp}
+            custom={0}
+            className="text-[11px] font-medium text-[#9ca3af] uppercase tracking-[0.12em] mb-10"
+          >
+            Real results from a real client
+          </motion.p>
+
+          <div className="grid grid-cols-3 gap-4 sm:gap-10 mb-12">
+            {[
+              { value: 311, label: "Calls Answered" },
+              { value: 29, label: "Appointments Booked" },
+              { value: 30, label: "Days" },
+            ].map((stat, i) => (
+              <motion.div
+                key={stat.label}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: "-40px" }}
+                variants={fadeUp}
+                custom={i}
+              >
+                <p
+                  className="text-[40px] sm:text-5xl lg:text-6xl font-bold text-primary"
+                  style={{ fontFamily: FONT_HEADING }}
+                >
+                  <AnimatedNumber value={stat.value} />
+                </p>
+                <p className="text-xs sm:text-sm text-[#6b7280] mt-2">
+                  {stat.label}
+                </p>
+              </motion.div>
+            ))}
           </div>
+
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            custom={3}
+          >
+            <Button
+              onClick={handleCTAClick}
+              size="lg"
+              className="bg-primary hover:bg-[#a67d56] text-white rounded-xl font-semibold h-12 px-9 shadow-[0_4px_20px_rgba(184,146,106,0.35)] transition-all hover:shadow-[0_6px_28px_rgba(184,146,106,0.45)]"
+            >
+              Book Your Free Growth Audit
+              <ArrowRight className="ml-2 w-4 h-4" />
+            </Button>
+          </motion.div>
         </div>
       </section>
 
-      {/* Mobile Calendar Section (Visible only on mobile/tablet) */}
-      <section id="calendar" className="pt-4 pb-20 lg:hidden relative">
-        <div className="container mx-auto px-4">
-          <div className="text-center">
-            <div className="flex justify-center py-12">
-              <div className="relative w-64 h-64 rounded-full overflow-hidden border-2 border-white/20 cursor-pointer" onClick={toggleVideo}>
-                <video
-                  ref={videoRef}
-                  src="/welcome.mp4"
-                  muted
-                  loop
-                  playsInline
-                  className="w-full h-full object-cover"
-                  style={{ objectPosition: 'center 50%' }}
-                  onTimeUpdate={() => {
-                    const v = videoRef.current;
-                    if (v && v.duration) setVideoProgress(v.currentTime / v.duration);
-                  }}
-                />
-                {/* Play/Pause overlay — only visible when paused */}
-                {!isPlaying && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                    <Play className="w-12 h-12 text-white/80 ml-1" />
-                  </div>
-                )}
-                {/* Circular progress bar */}
-                <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 256 256">
-                  <circle
-                    cx="128"
-                    cy="128"
-                    r="126"
-                    fill="none"
-                    stroke="white"
-                    strokeWidth="1"
-                    strokeDasharray={`${2 * Math.PI * 126}`}
-                    strokeDashoffset={`${2 * Math.PI * 126 * (1 - videoProgress)}`}
-                    style={{ transition: "stroke-dashoffset 0.3s linear" }}
-                  />
-                </svg>
-              </div>
-            </div>
-          </div>
-          <h2 className="text-3xl font-bold mb-4 text-white text-center">Book Your Free Strategy Call</h2>
-          <iframe
-            src="https://api.leadconnectorhq.com/widget/booking/g5Gko1Ht8zeUQB8XIAbg"
-            style={{ width: '100%', border: 'none', overflow: 'scroll' }}
-            scrolling="yes"
-            id="g5Gko1Ht8zeUQB8XIAbg_mobile"
-            className="w-full h-[900px]"
-          ></iframe>
-        </div>
-      </section>
+      {/* ════════════════════════════════════════════════════════════
+          SECTION 7: FAQ
+      ════════════════════════════════════════════════════════════ */}
+      <section className="bg-[#f8f8fa] py-20 sm:py-24 lg:py-28">
+        <div className="container max-w-2xl lg:max-w-3xl mx-auto px-5">
+          <motion.h2
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-60px" }}
+            variants={fadeUp}
+            custom={0}
+            className="text-[28px] sm:text-4xl lg:text-[44px] font-semibold tracking-[-0.01em] leading-[1.1] text-center mb-12 sm:mb-14"
+            style={{ fontFamily: FONT_HEADING }}
+          >
+            Frequently Asked Questions
+          </motion.h2>
 
-      {/* Sticky Mobile CTA */}
-      <div className="fixed bottom-0 left-0 w-full p-4 bg-background/95 backdrop-blur-xl border-t border-white/10 z-50 lg:hidden shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.5)]">
-        <Button size="lg" className="w-full h-14 relative flex items-center justify-center bg-white text-black shadow-[0_0_20px_-5px_rgba(255,255,255,0.5)] uppercase tracking-wide animate-pulse" onClick={() => {
-          const iframe = document.getElementById("g5Gko1Ht8zeUQB8XIAbg_mobile");
-          if (iframe) {
-            const top = iframe.getBoundingClientRect().top + window.scrollY - 100;
-            window.scrollTo({ top, behavior: "smooth" });
-          }
-        }}>
-          <span className="text-xl font-bold leading-none text-center mb-1.5">CLAIM 2 WEEKS FREE</span>
-          <span className="absolute bottom-1 left-0 w-full text-[9px] font-normal normal-case text-black/60 text-center px-2 whitespace-nowrap overflow-hidden text-ellipsis">No contracts. No fees. Cancel anytime.</span>
-        </Button>
-      </div>
-
-      {/* FAQ Section */}
-      <section className="py-8 relative overflow-hidden">
-        <div className="container mx-auto px-4 max-w-3xl">
-          <h2 className="text-2xl md:text-4xl font-black text-center mb-8 uppercase tracking-tight">Common Questions</h2>
-
-          <Accordion type="single" collapsible className="w-full space-y-4">
-            {faqs.map((faq, index) => (
-              <AccordionItem key={index} value={`item-${index}`} className="border border-white/10 rounded-lg bg-white/5 px-4">
-                <AccordionTrigger className="text-lg font-medium hover:text-primary transition-colors py-6">
-                  {faq.question}
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground pb-6 text-base leading-relaxed">
-                  {faq.answer}
-                </AccordionContent>
-              </AccordionItem>
+          <Accordion type="single" collapsible className="space-y-3.5">
+            {[
+              {
+                q: "Will it sound robotic?",
+                a: "No. We customize the voice, tone, and responses to match your brand. Your callers won't know the difference.",
+              },
+              {
+                q: "How long does setup take?",
+                a: "48 hours from onboarding to live. We handle everything.",
+              },
+              {
+                q: "What if a caller needs a real person?",
+                a: "The system can transfer to your team anytime during business hours. After hours, it handles everything — booking, rescheduling, answering questions.",
+              },
+              {
+                q: "Does it work with my booking software?",
+                a: "Yes. MedFlow integrates directly with your existing calendar and booking system.",
+              },
+              {
+                q: "How does pricing work?",
+                a: "You only pay per booked appointment. No setup fees, no monthly retainers. If MedFlow doesn't book appointments, you don't pay.",
+              },
+            ].map((faq, i) => (
+              <motion.div
+                key={i}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: "-20px" }}
+                variants={fadeUp}
+                custom={i}
+              >
+                <AccordionItem
+                  value={`faq-${i}`}
+                  className="bg-white border border-[#e5e7eb]/50 rounded-xl px-6 shadow-[0_1px_8px_rgba(0,0,0,0.03)] data-[state=open]:shadow-[0_4px_20px_rgba(0,0,0,0.06)] transition-shadow"
+                >
+                  <AccordionTrigger
+                    className="text-left font-medium text-[15px] py-5 hover:no-underline"
+                    style={{ fontFamily: FONT_HEADING, fontSize: "17px" }}
+                  >
+                    {faq.q}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-sm text-[#6b7280] leading-[1.7] pb-5">
+                    {faq.a}
+                  </AccordionContent>
+                </AccordionItem>
+              </motion.div>
             ))}
           </Accordion>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-12 pb-32 md:pb-12 border-t border-white/10 bg-black/20">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-8">
-            <a href="https://olexum.solutions" target="_blank" rel="noopener noreferrer">
-              <img
-                src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663309562810/xeUVpNNzaWDHjuqd.png"
-                alt="Olexum Logo"
-                className="h-8 w-auto object-contain opacity-80 hover:opacity-100 transition-opacity"
-              />
-            </a>
-            <div className="flex gap-6 text-sm text-muted-foreground">
-              <a href="https://olexum.solutions/privacy-policy" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Privacy Policy</a>
-              <a href="https://olexum.solutions/terms-of-service" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Terms of Service</a>
-            </div>
-          </div>
-          <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-muted-foreground/60">
-            <p className="text-center md:text-left max-w-2xl">
-              By booking with Olexum, you consent to receive appointment-related SMS messages. Msg & data rates may apply. Reply STOP to opt out.{" "}
-              <a href="https://olexum.solutions/terms-of-service#sms-communications" target="_blank" rel="noopener noreferrer" className="underline hover:text-white transition-colors ml-1">SMS Policy</a>
+      {/* ════════════════════════════════════════════════════════════
+          SECTION 8: FINAL CTA
+      ════════════════════════════════════════════════════════════ */}
+      <section ref={finalCtaRef} className="bg-white py-20 sm:py-24 lg:py-28">
+        <div className="container max-w-2xl mx-auto px-5 text-center">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-60px" }}
+            variants={fadeUp}
+            custom={0}
+          >
+            <h2
+              className="text-[28px] sm:text-4xl lg:text-[44px] font-semibold tracking-[-0.01em] leading-[1.1] mb-5"
+              style={{ fontFamily: FONT_HEADING }}
+            >
+              Your Competitors Are Already Picking Up.
+            </h2>
+            <p className="text-[#6b7280] text-[15px] sm:text-lg mb-10 max-w-lg mx-auto leading-[1.65]">
+              Every day without MedFlow is another day of leads that don't convert,
+              clients that don't book, and revenue you don't collect.
             </p>
-            <p>© {new Date().getFullYear()} Olexum Group. All rights reserved.</p>
-          </div>
+            <Button
+              onClick={handleCTAClick}
+              size="lg"
+              className="w-full sm:w-auto bg-primary hover:bg-[#a67d56] text-white rounded-xl font-semibold text-[15px] h-13 px-9 shadow-[0_4px_20px_rgba(184,146,106,0.35)] transition-all hover:shadow-[0_6px_28px_rgba(184,146,106,0.45)] active:scale-[0.98]"
+            >
+              Book Your Free Growth Audit
+            </Button>
+            <p className="text-xs text-[#9ca3af] mt-4">
+              No setup fees &middot; No retainers &middot; Only pay per booked appointment
+            </p>
+          </motion.div>
         </div>
-      </footer>
+      </section>
+
+      {/* ════════════════════════════════════════════════════════════
+          STICKY MOBILE CTA
+      ════════════════════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {showStickyCTA && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-white/95 backdrop-blur-sm border-t border-[#e5e7eb] px-4 py-3"
+            style={{
+              paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))",
+            }}
+          >
+            <Button
+              onClick={handleCTAClick}
+              size="lg"
+              className="w-full bg-primary hover:bg-[#a67d56] text-white rounded-xl font-semibold text-[15px] h-12 shadow-[0_4px_20px_rgba(184,146,106,0.35)]"
+            >
+              Book Your Free Growth Audit
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
