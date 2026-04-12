@@ -350,12 +350,11 @@ export default function Home() {
         <div className="container max-w-2xl lg:max-w-4xl mx-auto pt-4 sm:pt-6 pb-12 sm:pb-20 px-5">
           {/* Logo */}
           <div className="mb-6 sm:mb-12">
-            <span
-              className="text-lg font-semibold tracking-tight text-[#b0b0b8]"
-              style={{ fontFamily: FONT_BODY }}
-            >
-              olexum
-            </span>
+            <img
+              src="/olexum-logo.png"
+              alt="Olexum"
+              className="h-5 sm:h-6 w-auto"
+            />
           </div>
 
           {/* Headline — centered */}
@@ -376,8 +375,8 @@ export default function Home() {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="text-[15px] sm:text-lg text-[#6b7280] leading-[1.65] mb-8 sm:mb-10 max-w-xl mx-auto text-center"
           >
-            MedFlow is a full client acquisition system built around your
-            med spa — from first call to confirmed booking to five-star review.{" "}
+            SpaFlow is a full client acquisition system built around your
+            day spa — from first call to confirmed booking to five-star review.{" "}
             <span className="text-[17px] sm:text-[21px] font-bold text-[#1a1a2e] whitespace-nowrap">You only pay per booked appointment.</span>
           </motion.p>
 
@@ -505,7 +504,7 @@ export default function Home() {
                     className="text-2xl sm:text-[28px] font-semibold mb-8 leading-[1.2]"
                     style={{ fontFamily: FONT_HEADING }}
                   >
-                    Do you own or manage a med spa?
+                    Do you own or manage a day spa?
                   </h3>
                   <div className="flex flex-col gap-3">
                     <Button
@@ -534,7 +533,7 @@ export default function Home() {
                     Thanks for your interest
                   </h3>
                   <p className="text-[#6b7280] text-sm leading-[1.65] mb-7">
-                    This offer is specifically designed for med spa owners. If
+                    This offer is specifically designed for day spa owners. If
                     you run a different type of business, reach out to us at{" "}
                     <a
                       href="mailto:hello@olexum.solutions"
@@ -586,7 +585,7 @@ export default function Home() {
             </h2>
             <p className="text-[#6b7280] text-[15px] sm:text-lg max-w-lg mx-auto leading-[1.65]">
               In 15 minutes, we'll show you exactly how much revenue is slipping
-              through your current process — and how MedFlow captures it from first call to five-star review.
+              through your current process — and how SpaFlow captures it from first call to five-star review.
             </p>
             <p className="text-sm text-[#9ca3af] mt-4">
               You'll speak with one of Olexum's co-founders.
@@ -717,7 +716,7 @@ export default function Home() {
                     </TooltipTrigger>
                     <TooltipContent className="max-w-[240px] text-sm">
                       Industry average conversion rate from phone call to booked
-                      appointment for med spas.
+                      appointment for day spas.
                     </TooltipContent>
                   </Tooltip>
                 </div>
@@ -749,7 +748,7 @@ export default function Home() {
 
                 {/* Stat callout */}
                 <p className="text-center text-sm text-[#6b7280] mt-7 leading-[1.65]">
-                  79% of med spa clients have skipped booking entirely because
+                  79% of day spa clients have skipped booking entirely because
                   they couldn't get through.
                 </p>
 
@@ -793,7 +792,7 @@ export default function Home() {
                 icon: Phone,
                 title: "Every Lead Captured",
                 description:
-                  "MedFlow answers every call instantly — during treatments, after hours, weekends. It qualifies each caller, collects their information, and moves them into your pipeline. No voicemail. No missed opportunities.",
+                  "SpaFlow answers every call instantly — during treatments, after hours, weekends. It qualifies each caller, collects their information, and moves them into your pipeline. No voicemail. No missed opportunities.",
               },
               {
                 icon: Calendar,
@@ -805,7 +804,7 @@ export default function Home() {
                 icon: Sparkles,
                 title: "Built Around Your Spa",
                 description:
-                  "MedFlow isn't a generic tool you plug in. We build it around your services, pricing, availability, and workflow — then handle ongoing nurture and review collection so every client becomes a repeat client.",
+                  "SpaFlow isn't a generic tool you plug in. We build it around your services, pricing, availability, and workflow — then handle ongoing nurture and review collection so every client becomes a repeat client.",
               },
             ].map((feature, i) => (
               <motion.div
@@ -933,11 +932,11 @@ export default function Home() {
               },
               {
                 q: "Does it work with my booking software?",
-                a: "Yes. MedFlow integrates directly with your existing calendar and booking system.",
+                a: "Yes. SpaFlow integrates directly with your existing calendar and booking system.",
               },
               {
                 q: "How does pricing work?",
-                a: "You only pay per booked appointment. No setup fees, no monthly retainers. If MedFlow doesn't book appointments, you don't pay.",
+                a: "You only pay per booked appointment. No setup fees, no monthly retainers. If SpaFlow doesn't book appointments, you don't pay.",
               },
             ].map((faq, i) => (
               <motion.div
@@ -987,7 +986,7 @@ export default function Home() {
               Your Competitors Are Already Picking Up.
             </h2>
             <p className="text-[#6b7280] text-[15px] sm:text-lg mb-10 max-w-lg mx-auto leading-[1.65]">
-              Every day without MedFlow is another day of leads that don't convert,
+              Every day without SpaFlow is another day of leads that don't convert,
               clients that don't book, and revenue you don't collect.
             </p>
             <Button

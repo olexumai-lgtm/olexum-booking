@@ -5,7 +5,9 @@
       "Bash(claude --version)",
       "Bash(ls *.tsx)",
       "Bash(grep -v -E '^\\(accordion|button|card|sonner|tooltip\\)\\\\.tsx$')",
-      "Bash(xargs rm:*)"
+      "Bash(xargs rm:*)",
+      "Bash(cp \"/Users/noah/Desktop/olexum logo.png\" \"/Users/noah/Library/Mobile Documents/com~apple~CloudDocs/projects/olexum-booking/client/public/olexum-logo.png\")",
+      "Bash(cp \"/Users/noah/Desktop/favicon.png\" \"/Users/noah/Library/Mobile Documents/com~apple~CloudDocs/projects/olexum-booking/client/public/favicon.png\")"
     ]
   }
 }

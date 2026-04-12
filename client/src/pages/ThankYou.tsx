@@ -26,9 +26,11 @@ export default function ThankYou() {
       >
         {/* Logo */}
         <div className="text-center mb-10">
-          <span className="text-lg font-semibold tracking-tight text-[#b0b0b8]">
-            olexum
-          </span>
+          <img
+            src="/olexum-logo.png"
+            alt="Olexum"
+            className="h-5 sm:h-6 w-auto mx-auto"
+          />
         </div>
 
         {/* Heading */}
@@ -85,7 +87,7 @@ export default function ThankYou() {
             </h3>
             <p className="text-sm text-[#6b7280] leading-[1.7]">
               One of Olexum's co-founders will walk you through exactly how much
-              revenue your spa is leaving on the table — and how MedFlow captures
+              revenue your spa is leaving on the table — and how SpaFlow captures
               it in 48 hours. The call takes about 15 minutes.
             </p>
           </CardContent>
