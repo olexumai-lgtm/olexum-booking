@@ -343,21 +343,19 @@ export default function Home() {
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="w-full max-w-4xl mx-auto shadow-2xl rounded-xl overflow-hidden mb-8 sm:mb-10"
+            className="w-full max-w-4xl mx-auto mb-8 sm:mb-10"
           >
             <MuxPlayer
               playbackId={MUX_PLAYBACK_ID}
-              thumbnail="/vsl-cover.jpg"
-              muted
+              poster="/vsl-cover.jpg"
               loop={false}
               playsInline
               accentColor="#b8926a"
+              className="aspect-video w-full rounded-xl overflow-hidden shadow-2xl"
               onPlay={handleVSLPlay}
               onTimeUpdate={handleVSLTimeUpdate}
               onEnded={handleVSLEnded}
               style={{
-                aspectRatio: "16/9",
-                width: "100%",
                 "--center-controls": "flex" as unknown as string,
                 "--play-button-width": "80px" as unknown as string,
                 "--play-button-height": "80px" as unknown as string,
