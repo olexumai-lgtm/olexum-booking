@@ -503,7 +503,6 @@ export default function Home() {
       {/* ════════════════════════════════════════════════════════════
           SECTION 3: CALENDAR BOOKING
       ════════════════════════════════════════════════════════════ */}
-      {qualified && (
       <section
         ref={calendarRef}
         id="calendar"
@@ -546,7 +545,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-      )}
 
       {/* ════════════════════════════════════════════════════════════
           SECTION 4: THE PROBLEM — Revenue Calculator
