@@ -347,14 +347,21 @@ export default function Home() {
           >
             <MuxPlayer
               playbackId={MUX_PLAYBACK_ID}
-              autoPlay="muted"
+              thumbnail="/vsl-cover.jpg"
               muted
               loop={false}
               playsInline
+              accentColor="#b8926a"
               onPlay={handleVSLPlay}
               onTimeUpdate={handleVSLTimeUpdate}
               onEnded={handleVSLEnded}
-              style={{ aspectRatio: "16/9", width: "100%" }}
+              style={{
+                aspectRatio: "16/9",
+                width: "100%",
+                "--center-controls": "flex" as unknown as string,
+                "--play-button-width": "80px" as unknown as string,
+                "--play-button-height": "80px" as unknown as string,
+              } as React.CSSProperties}
             />
           </motion.div>
 
