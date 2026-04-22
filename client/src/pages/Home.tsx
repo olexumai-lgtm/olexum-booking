@@ -75,6 +75,9 @@ function AnimatedNumber({
 export default function Home() {
   const [showStickyCTA, setShowStickyCTA] = useState(false);
   const [showQualifier, setShowQualifier] = useState(false);
+  const [qualified, setQualified] = useState(
+    () => sessionStorage.getItem("qualifierPassed") === "1",
+  );
   const [disqualified, setDisqualified] = useState(false);
   const [missedCalls, setMissedCalls] = useState(8);
   const [treatmentValue, setTreatmentValue] = useState(475);
@@ -116,6 +119,8 @@ export default function Home() {
       window.fbq("track", "Lead");
       window._leadFired = true;
     }
+    setQualified(true);
+    sessionStorage.setItem("qualifierPassed", "1");
     setShowQualifier(false);
   };
 
@@ -498,6 +503,7 @@ export default function Home() {
       {/* ════════════════════════════════════════════════════════════
           SECTION 3: CALENDAR BOOKING
       ════════════════════════════════════════════════════════════ */}
+      {qualified && (
       <section
         ref={calendarRef}
         id="calendar"
@@ -540,6 +546,7 @@ export default function Home() {
           </div>
         </div>
       </section>
+      )}
 
       {/* ════════════════════════════════════════════════════════════
           SECTION 4: THE PROBLEM — Revenue Calculator
