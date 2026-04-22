@@ -23,7 +23,7 @@ import { motion, AnimatePresence, useInView } from "framer-motion";
 import { useEffect, useRef, useState, useCallback } from "react";
 
 // ── Config ──────────────────────────────────────────────────────────
-const MUX_PLAYBACK_ID = "S01UN02sQh7iQLh5eZVmWM2bu5B00A87O1TXcl363KNkHHfw";
+const MUX_PLAYBACK_ID = "S01UN02sQh7iQLh5eZVwM2bu5B00A8701TXcl363KNkHHfw";
 const GHL_CALENDAR_URL =
   "https://api.leadconnectorhq.com/widget/booking/g5Gko1Ht8zeUQB8XIAbg";
 
