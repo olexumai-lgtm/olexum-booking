@@ -117,7 +117,6 @@ export default function Home() {
       window._leadFired = true;
     }
     setShowQualifier(false);
-    scrollToCalendar();
   };
 
   const handleQ1No = () => {
@@ -356,6 +355,7 @@ export default function Home() {
               onTimeUpdate={handleVSLTimeUpdate}
               onEnded={handleVSLEnded}
               style={{
+                "--media-object-fit": "cover",
                 "--center-controls": "flex" as unknown as string,
                 "--play-button-width": "80px" as unknown as string,
                 "--play-button-height": "80px" as unknown as string,
