@@ -17,15 +17,13 @@ import {
   Sparkles,
   Info,
   ArrowRight,
-  Play,
-  Volume2,
-  VolumeX,
 } from "lucide-react";
+import MuxPlayer from "@mux/mux-player-react";
 import { motion, AnimatePresence, useInView } from "framer-motion";
 import { useEffect, useRef, useState, useCallback } from "react";
 
 // ── Config ──────────────────────────────────────────────────────────
-const VIDEO_SRC = ""; // Replace with actual video URL
+const MUX_PLAYBACK_ID = "S01UN02sQh7iQLh5eZVmWM2bu5B00A87O1TXcl363KNkHHfw";
 const GHL_CALENDAR_URL =
   "https://api.leadconnectorhq.com/widget/booking/g5Gko1Ht8zeUQB8XIAbg";
 
@@ -80,14 +78,9 @@ export default function Home() {
   const [disqualified, setDisqualified] = useState(false);
   const [missedCalls, setMissedCalls] = useState(8);
   const [treatmentValue, setTreatmentValue] = useState(475);
-  const [isMuted, setIsMuted] = useState(true);
-  const [videoProgress, setVideoProgress] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-
   const heroRef = useRef<HTMLElement>(null);
   const calendarRef = useRef<HTMLElement>(null);
   const finalCtaRef = useRef<HTMLElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
   const qualifierTriggeredRef = useRef(false);
 
   // Pixel one-time flags
@@ -139,25 +132,33 @@ export default function Home() {
     };
   }, [showQualifier]);
 
-  // ── Scroll-triggered qualifier (once per session) ───────────────
+  // ── Qualifier trigger: 30s timeout OR scroll past hero (whichever first) ──
   useEffect(() => {
     if (sessionStorage.getItem("qualifierSeen")) return;
 
-    const handleScroll = () => {
+    const trigger = () => {
       if (qualifierTriggeredRef.current) return;
-      const hero = heroRef.current;
-      if (!hero) return;
-      const heroBottom = hero.getBoundingClientRect().bottom;
-      if (heroBottom <= 0) {
-        qualifierTriggeredRef.current = true;
-        setShowQualifier(true);
-        sessionStorage.setItem("qualifierSeen", "1");
-        window.removeEventListener("scroll", handleScroll);
-      }
+      qualifierTriggeredRef.current = true;
+      setShowQualifier(true);
+      sessionStorage.setItem("qualifierSeen", "1");
+      cleanup();
     };
 
+    const handleScroll = () => {
+      const hero = heroRef.current;
+      if (!hero) return;
+      if (hero.getBoundingClientRect().bottom <= 0) trigger();
+    };
+
+    const timerId = setTimeout(trigger, 30_000);
     window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+
+    function cleanup() {
+      clearTimeout(timerId);
+      window.removeEventListener("scroll", handleScroll);
+    }
+
+    return cleanup;
   }, []);
 
   // ── Sticky CTA visibility ──────────────────────────────────────
@@ -186,18 +187,8 @@ export default function Home() {
     script.async = true;
     document.body.appendChild(script);
 
-    const handleMessage = (e: MessageEvent) => {
-      if (
-        e.data.type === "survey-submit" ||
-        e.data.type === "calendar-booking-redirect"
-      ) {
-        window.location.href = "/thank-you";
-      }
-    };
-    window.addEventListener("message", handleMessage);
     return () => {
       document.body.removeChild(script);
-      window.removeEventListener("message", handleMessage);
     };
   }, []);
 
@@ -260,19 +251,19 @@ export default function Home() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // ── Meta Pixel: VSL events (play, 50%, complete) ─────────────
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    const onPlay = () => {
-      if (!firedVSLPlay.current) {
-        firedVSLPlay.current = true;
-        window.fbq?.("trackCustom", "VSLPlay");
-      }
-    };
-    const onTimeUpdate = () => {
-      if (!video.duration) return;
-      const pct = video.currentTime / video.duration;
+  // ── VSL pixel event handlers ─────────────────────────────────
+  const handleVSLPlay = useCallback(() => {
+    if (!firedVSLPlay.current) {
+      firedVSLPlay.current = true;
+      window.fbq?.("trackCustom", "VSLPlay");
+    }
+  }, []);
+
+  const handleVSLTimeUpdate = useCallback(
+    (e: Event) => {
+      const el = e.target as HTMLMediaElement;
+      if (!el.duration) return;
+      const pct = el.currentTime / el.duration;
       if (pct >= 0.5 && !firedVSL50.current) {
         firedVSL50.current = true;
         window.fbq?.("trackCustom", "VSL50");
@@ -281,48 +272,15 @@ export default function Home() {
         firedVSLComplete.current = true;
         window.fbq?.("trackCustom", "VSLComplete");
       }
-    };
-    const onEnded = () => {
-      if (!firedVSLComplete.current) {
-        firedVSLComplete.current = true;
-        window.fbq?.("trackCustom", "VSLComplete");
-      }
-    };
-    video.addEventListener("play", onPlay);
-    video.addEventListener("timeupdate", onTimeUpdate);
-    video.addEventListener("ended", onEnded);
-    return () => {
-      video.removeEventListener("play", onPlay);
-      video.removeEventListener("timeupdate", onTimeUpdate);
-      video.removeEventListener("ended", onEnded);
-    };
-  }, []);
+    },
+    [],
+  );
 
-  // ── Video handlers ─────────────────────────────────────────────
-  const toggleMute = useCallback(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    if (!isPlaying) {
-      video.muted = false;
-      video.play();
-      setIsPlaying(true);
-      setIsMuted(false);
-    } else {
-      video.muted = !video.muted;
-      setIsMuted(video.muted);
+  const handleVSLEnded = useCallback(() => {
+    if (!firedVSLComplete.current) {
+      firedVSLComplete.current = true;
+      window.fbq?.("trackCustom", "VSLComplete");
     }
-  }, [isPlaying]);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    const onTimeUpdate = () => {
-      if (video.duration) {
-        setVideoProgress((video.currentTime / video.duration) * 100);
-      }
-    };
-    video.addEventListener("timeupdate", onTimeUpdate);
-    return () => video.removeEventListener("timeupdate", onTimeUpdate);
   }, []);
 
   // ── Fade-in animation variant ──────────────────────────────────
@@ -385,47 +343,19 @@ export default function Home() {
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="relative rounded-2xl overflow-hidden bg-[#f0f0f2] aspect-video mb-8 sm:mb-10 shadow-lg"
+            className="w-full max-w-4xl mx-auto shadow-2xl rounded-xl overflow-hidden mb-8 sm:mb-10"
           >
-            {VIDEO_SRC ? (
-              <>
-                <video
-                  ref={videoRef}
-                  src={VIDEO_SRC}
-                  muted
-                  autoPlay
-                  playsInline
-                  className="w-full h-full object-cover"
-                />
-                {/* Progress bar */}
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/10">
-                  <div
-                    className="h-full bg-primary transition-all duration-300"
-                    style={{ width: `${videoProgress}%` }}
-                  />
-                </div>
-                {/* Mute/unmute button */}
-                <button
-                  onClick={toggleMute}
-                  className="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white transition-colors"
-                >
-                  {isMuted ? (
-                    <VolumeX className="w-5 h-5 text-[#1a1a2e]" />
-                  ) : (
-                    <Volume2 className="w-5 h-5 text-[#1a1a2e]" />
-                  )}
-                </button>
-              </>
-            ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center gap-3">
-                <div className="w-16 h-16 rounded-full bg-white/80 flex items-center justify-center shadow-md">
-                  <Play className="w-7 h-7 text-[#1a1a2e] ml-1" />
-                </div>
-                <span className="text-sm text-[#6b7280]">
-                  Video loading...
-                </span>
-              </div>
-            )}
+            <MuxPlayer
+              playbackId={MUX_PLAYBACK_ID}
+              autoPlay="muted"
+              muted
+              loop={false}
+              playsInline
+              onPlay={handleVSLPlay}
+              onTimeUpdate={handleVSLTimeUpdate}
+              onEnded={handleVSLEnded}
+              style={{ aspectRatio: "16/9", width: "100%" }}
+            />
           </motion.div>
 
           {/* Value props — left-aligned */}
@@ -584,7 +514,7 @@ export default function Home() {
               Book Your Free Growth Audit
             </h2>
             <p className="text-[#6b7280] text-[15px] sm:text-lg max-w-lg mx-auto leading-[1.65]">
-              In 15 minutes, we'll show you exactly how much revenue is slipping
+              We'll show you exactly how much revenue is slipping
               through your current process — and how SpaFlow captures it from first call to five-star review.
             </p>
             <p className="text-sm text-[#9ca3af] mt-4">
